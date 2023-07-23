@@ -44,16 +44,6 @@ func (m *Manager) getPackagesDir() string {
 	return filepath.Join(m.CachePath, "packages")
 }
 
-func (m *Manager) Sync() error {
-	for _, pkg := range m.Packages {
-		if err := m.updatePackage(pkg, false); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (m *Manager) GenerateScript() ([]byte, error) {
 	paths := make([]string, 0, len(m.Packages)+1)
 	for _, pkg := range m.Packages {
@@ -72,46 +62,48 @@ func (m *Manager) GenerateScript() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (m *Manager) updatePackage(pkg Package, force bool) error {
-	tmpDir, err := os.MkdirTemp("", "gpkg-*")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tmpDir)
-
-	yes := true
-	if !force {
-		yes, err = m.shouldUpdate(pkg)
+func (m *Manager) UpdatePackages(force bool) error {
+	for _, pkg := range m.Packages {
+		tmpDir, err := os.MkdirTemp("", "gpkg-*")
 		if err != nil {
 			return err
 		}
-	}
-	if yes {
-		if err = pkg.Download(tmpDir); err != nil {
-			return err
-		}
+		defer os.RemoveAll(tmpDir)
 
-		ref, err := getRef(pkg)
-		if err != nil {
-			return err
-		}
-		refFile := filepath.Join(tmpDir, ".pkgref")
-		if err = os.WriteFile(refFile, []byte(ref), 0666); err != nil {
-			return err
-		}
-
-		pkgDirName, err := pkg.GetDirName()
-		if err != nil {
-			return err
-		}
-		pkgCacheDir := filepath.Join(m.getPackagesDir(), pkgDirName)
-		if err = cp.Copy(tmpDir, pkgCacheDir); err != nil {
-			return err
-		}
-
-		if pkg.GetSpec().Pick != "" {
-			if err := NewPicker(pkg.GetSpec().Pick).Do(pkgCacheDir); err != nil {
+		yes := true
+		if !force {
+			yes, err = m.shouldUpdate(pkg)
+			if err != nil {
 				return err
+			}
+		}
+		if yes {
+			if err = pkg.Download(tmpDir); err != nil {
+				return err
+			}
+
+			ref, err := getRef(pkg)
+			if err != nil {
+				return err
+			}
+			refFile := filepath.Join(tmpDir, ".pkgref")
+			if err = os.WriteFile(refFile, []byte(ref), 0666); err != nil {
+				return err
+			}
+
+			pkgDirName, err := pkg.GetDirName()
+			if err != nil {
+				return err
+			}
+			pkgCacheDir := filepath.Join(m.getPackagesDir(), pkgDirName)
+			if err = cp.Copy(tmpDir, pkgCacheDir); err != nil {
+				return err
+			}
+
+			if pkg.GetSpec().Pick != "" {
+				if err := NewPicker(pkg.GetSpec().Pick).Do(pkgCacheDir); err != nil {
+					return err
+				}
 			}
 		}
 	}

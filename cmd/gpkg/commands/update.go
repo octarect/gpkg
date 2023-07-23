@@ -27,7 +27,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Failed to initialize manager: %s", err)
 	}
 
-	if err := m.Sync(); err != nil {
+	if err := m.UpdatePackages(true); err != nil {
 		fmt.Println(err)
 	}
 
