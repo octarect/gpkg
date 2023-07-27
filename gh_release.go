@@ -3,7 +3,7 @@ package gpkg
 import (
 	"context"
 	"fmt"
-	"path/filepath"
+	"io"
 	"runtime"
 	"strings"
 
@@ -92,14 +92,14 @@ func (p *GHReleasePackage) GetSpec() *PackageSpec {
 	return p.Spec
 }
 
-func (p *GHReleasePackage) Download(path string) error {
+func (p *GHReleasePackage) Download(path string) (dl io.ReadSeeker, name string, err error) {
 	r, err := p.releases.GetRelease(context.Background(), p.Spec.Ref)
 	if err != nil {
-		return fmt.Errorf("Failed to get release. ref=%s: %s", p.Spec.Ref, err)
+		err = fmt.Errorf("Failed to get release. ref=%s: %s", p.Spec.Ref, err)
+		return
 	}
 
 	var url string
-	var name string
 	for k, v := range r.assets {
 		if isCompatibleRelease(k) {
 			name = k
@@ -108,25 +108,12 @@ func (p *GHReleasePackage) Download(path string) error {
 		}
 	}
 	if url == "" {
-		return fmt.Errorf("No compatible asset found. ref=%s", p.Spec.Ref)
+		err = fmt.Errorf("No compatible asset found. ref=%s", p.Spec.Ref)
+		return
 	}
 
-	dl, err := download(url)
-	if err != nil {
-		return err
-	}
-
-	if strings.HasSuffix(name, ".tar.gz") {
-		if err := extractTarGz(dl, path); err != nil {
-			return err
-		}
-	} else {
-		if err := copyFile(filepath.Join(path, name), dl, 0755); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	dl, err = download(url)
+	return
 }
 
 func (p *GHReleasePackage) FetchLatestRef() (string, error) {

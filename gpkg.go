@@ -2,6 +2,7 @@ package gpkg
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -95,7 +96,7 @@ func (p *Picker) Do(root string) error {
 }
 
 type Package interface {
-	Download(string) error
+	Download(string) (io.ReadSeeker, string, error)
 	FetchLatestRef() (string, error)
 	GetDirName() (string, error)
 	GetSpec() *PackageSpec

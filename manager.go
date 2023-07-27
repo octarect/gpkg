@@ -3,10 +3,12 @@ package gpkg
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/h2non/filetype"
 	cp "github.com/otiai10/copy"
 )
 
@@ -78,7 +80,11 @@ func (m *Manager) UpdatePackages(force bool) error {
 			}
 		}
 		if yes {
-			if err = pkg.Download(tmpDir); err != nil {
+			dl, name, err := pkg.Download(tmpDir)
+			if err != nil {
+				return err
+			}
+			if err = extract(dl, tmpDir, name); err != nil {
 				return err
 			}
 
@@ -138,4 +144,22 @@ func getRef(pkg Package) (ref string, err error) {
 		ref, err = pkg.FetchLatestRef()
 	}
 	return
+}
+
+func extract(r io.ReadSeeker, path, name string) error {
+	ft, err := filetype.MatchReader(r)
+	if err != nil {
+		return err
+	}
+	r.Seek(0, 0)
+	if ft.MIME.Value == "application/gzip" {
+		if err := extractTarGz(r, path); err != nil {
+			return err
+		}
+	} else {
+		if err := copyFile(filepath.Join(path, name), r, 0755); err != nil {
+			return err
+		}
+	}
+	return nil
 }
