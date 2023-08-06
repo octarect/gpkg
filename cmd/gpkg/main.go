@@ -22,6 +22,7 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	"github.com/google/go-github/v53/github"
 	"github.com/h2non/filetype"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	cp "github.com/otiai10/copy"
@@ -37,29 +38,63 @@ func (c *Config) GetPackagesPath() string {
 	return path.Join(c.CachePath, "packages")
 }
 
-func main() {
-	if err := commandUpdate(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s", err)
+var (
+	version = "v0.1.0"
+	rootCmd = &cobra.Command{
+		Use: "gpkg",
+		Short: "A general package manager",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			cfgPath := "./config.toml"
+			viper.SetConfigFile(cfgPath)
+			if err := viper.ReadInConfig(); err != nil {
+				return err
+			}
+			if err := viper.Unmarshal(&cfg); err != nil {
+				return err
+			}
+			if cfg.CachePath == "" {
+				usrCacheDir, err := os.UserCacheDir()
+				if err != nil {
+					return err
+				}
+				cfg.CachePath = filepath.Join(usrCacheDir, "gpkg")
+			}
+			return nil
+		},
 	}
+	versionCmd = &cobra.Command{
+		Use: "version",
+		Short: "Print the version of gpkg",
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(version)
+		},
+	}
+	updateCmd = &cobra.Command{
+		Use: "update",
+		Short: "Install or update packages",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := commandUpdate(); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+)
+
+func main() {
+	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(updateCmd)
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s", err)
+		os.Exit(1)
+	}
+	return
 }
 
 func commandUpdate() error {
-	cfgPath := "./config.toml"
-	viper.SetConfigFile(cfgPath)
-
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return err
-	}
-	if cfg.CachePath == "" {
-		usrCacheDir, err := os.UserCacheDir()
-		if err != nil {
-			return err
-		}
-		cfg.CachePath = filepath.Join(usrCacheDir, "gpkg")
-	}
 	for _, spec := range cfg.Specs {
 		if err := spec.Init(); err != nil {
 			return err
