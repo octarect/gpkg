@@ -59,6 +59,13 @@ var (
 				}
 				cfg.CachePath = filepath.Join(usrCacheDir, "gpkg")
 			}
+
+			for _, spec := range cfg.Specs {
+				if err := spec.Init(); err != nil {
+					return err
+				}
+			}
+
 			return nil
 		},
 	}
@@ -76,10 +83,14 @@ var (
 		Use: "update",
 		Short: "Install or update packages",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := commandUpdate(); err != nil {
-				return err
-			}
-			return nil
+			return commandUpdate()
+		},
+	}
+	sourceCmd = &cobra.Command{
+		Use: "source",
+		Short: "Generate script to Source plugins",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return commandSource()
 		},
 	}
 )
@@ -87,6 +98,7 @@ var (
 func main() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(updateCmd)
+	rootCmd.AddCommand(sourceCmd)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s", err)
 		os.Exit(1)
@@ -95,18 +107,21 @@ func main() {
 }
 
 func commandUpdate() error {
-	for _, spec := range cfg.Specs {
-		if err := spec.Init(); err != nil {
-			return err
-		}
-	}
-
 	es := reconcile(cfg.Specs)
 	if len(es) > 0 {
 		PrintReconcileErrors(es)
 		return errors.New("failed to update packages")
 	}
 
+	return nil
+}
+
+func commandSource() error {
+	paths := make([]string, len(cfg.Specs))
+	for i, spec := range cfg.Specs {
+		paths[i] = filepath.Join(cfg.GetPackagesPath(), spec.GetDirName())
+	}
+	fmt.Printf(`export PATH="$PATH:%s"`, strings.Join(paths, ":"))
 	return nil
 }
 

@@ -14,6 +14,12 @@ from = "ghr"
 name = "junegunn/fzf"
 ```
 
+### Load plugins
+
+```bash
+eval $(gpkg soruce)
+```
+
 ## License
 
 MIT License (© 2023 Ryota Kota)
