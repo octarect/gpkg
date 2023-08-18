@@ -1,2 +1,8 @@
-run:
-	@go run ./cmd/gpkg/main.go
+.PHONY: build
+build:
+	@mkdir bin/
+	@go build -o ./bin/gpkg ./main.go
+
+.PHONY: clean
+clean:
+	rm -rf bin/
