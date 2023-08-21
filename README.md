@@ -1,12 +1,12 @@
 # gpkg
 
-Super great plugin manager.
+Super great package manager.
 
 ## Getting started
 
 ### Installation
 
-### Add plugins
+### Add a package
 
 ```toml
 [[packages]]
@@ -14,7 +14,7 @@ from = "ghr"
 name = "junegunn/fzf"
 ```
 
-### Load plugins
+### Load packages
 
 ```bash
 eval $(gpkg soruce)
