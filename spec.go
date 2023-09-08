@@ -10,37 +10,6 @@ import (
 	"strings"
 )
 
-type Spec struct {
-	From string
-	Name string
-	Pick string
-	Ref  string
-
-	Source Source
-}
-
-func (s *Spec) Init() error {
-	var src Source
-	var err error
-
-	switch s.From {
-	case "ghr":
-		src, err = NewGitHubRelease(s.Name, s.Ref)
-	default:
-		return fmt.Errorf("invalid spec. from=%s", s.From)
-	}
-	if err != nil {
-		return fmt.Errorf("failed to init spec: %s", err)
-	}
-	s.Source = src
-
-	return nil
-}
-
-func (s *Spec) GetDirName() string {
-	return strings.Replace(s.Name, "/", "---", -1)
-}
-
 type Picker struct {
 	lhs string
 	rhs string

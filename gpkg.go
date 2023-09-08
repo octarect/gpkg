@@ -13,11 +13,11 @@ import (
 )
 
 type ReconcileError struct {
-	Spec *Spec
+	Spec ISpec
 	Err  error
 }
 
-func Reconcile(dir string, specs []*Spec) []*ReconcileError {
+func Reconcile(dir string, specs []ISpec) []*ReconcileError {
 	bars := make([]*ProgressBar, len(specs))
 	pool := pb.NewPool()
 	for i := range specs {
@@ -31,7 +31,7 @@ func Reconcile(dir string, specs []*Spec) []*ReconcileError {
 	pool.Start()
 	for i, spec := range specs {
 		wg.Add(1)
-		go func(spec *Spec, bar *ProgressBar, wg *sync.WaitGroup) {
+		go func(spec ISpec, bar *ProgressBar, wg *sync.WaitGroup) {
 			defer wg.Done()
 
 			err := func() error {
@@ -41,7 +41,7 @@ func Reconcile(dir string, specs []*Spec) []*ReconcileError {
 				}
 				defer os.RemoveAll(tmpDir)
 
-				dl, err := spec.Source.GetDownloader()
+				dl, err := spec.Source().GetDownloader()
 				if err != nil {
 					return err
 				}
@@ -59,8 +59,8 @@ func Reconcile(dir string, specs []*Spec) []*ReconcileError {
 					return err
 				}
 
-				if spec.Pick != "" {
-					if err := NewPicker(spec.Pick).Do(pkgCachePath); err != nil {
+				if spec.Common().Pick != "" {
+					if err := NewPicker(spec.Common().Pick).Do(pkgCachePath); err != nil {
 						return err
 					}
 				}

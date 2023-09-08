@@ -23,7 +23,7 @@ var (
 			if err := viper.ReadInConfig(); err != nil {
 				return err
 			}
-			if err := viper.Unmarshal(&cfg); err != nil {
+			if err := viper.Unmarshal(&cfg, gpkg.DecoderConfigOption); err != nil {
 				return err
 			}
 			if cfg.CachePath == "" {
@@ -97,7 +97,8 @@ Error updating %s:
 
 func printReconcileErrors(es []*gpkg.ReconcileError) {
 	for _, e := range es {
-		fmt.Fprintf(os.Stderr, strings.TrimSpace(errorFormat), e.Spec.Name, e.Err)
+		m := e.Spec.OriginalMap()
+		fmt.Fprintf(os.Stderr, strings.TrimSpace(errorFormat), m["name"], e.Err)
 		fmt.Println()
 	}
 }
