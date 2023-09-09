@@ -74,7 +74,6 @@ func main() {
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(sourceCmd)
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s", err)
 		os.Exit(1)
 	}
 	return
