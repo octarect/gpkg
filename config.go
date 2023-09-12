@@ -11,20 +11,19 @@ import (
 )
 
 type Config struct {
-	CachePath string  `mapstructure:"cache_path"`
-	Specs     []ISpec `mapstructure:"packages"`
+	CachePath string        `mapstructure:"cache_path"`
+	Specs     []PackageSpec `mapstructure:"packages"`
 }
 
 func (c *Config) GetPackagesPath() string {
 	return path.Join(c.CachePath, "packages")
 }
 
-type ISpec interface {
-	Common() *CommonSpec
-	Source() Source
-	Validate() error
-	Init() error
-	GetDirName() string
+type PackageSpec interface {
+	Common()      *CommonSpec
+	Validate()    error
+	DisplayName() string
+	GetDirName()  string
 	OriginalMap() map[string]interface{}
 }
 
@@ -32,17 +31,13 @@ type CommonSpec struct {
 	From string
 	Pick string
 	Ref  string
+	ID   string
 
-	src Source
-	m   map[string]interface{}
+	m map[string]interface{}
 }
 
 func (s *CommonSpec) Common() *CommonSpec {
 	return s
-}
-
-func (s *CommonSpec) Source() Source {
-	return s.src
 }
 
 func (s *CommonSpec) OriginalMap() map[string]interface{} {
@@ -56,6 +51,10 @@ func (s *CommonSpec) Validate() error {
 	return nil
 }
 
+func (s *CommonSpec) DisplayName() string {
+	return s.ID
+}
+
 type GitHubReleaseSpec struct {
 	*CommonSpec
 	Name string
@@ -66,17 +65,16 @@ func (s *GitHubReleaseSpec) Validate() error {
 	return nil
 }
 
-func (s *GitHubReleaseSpec) Init() error {
-	src, err := NewGitHubRelease(s.Name, s.Ref)
-	if err != nil {
-		return err
-	}
-	s.Common().src = src
-	return nil
-}
-
 func (s *GitHubReleaseSpec) GetDirName() string {
 	return strings.Replace(s.Name, "/", "---", -1)
+}
+
+func (s *GitHubReleaseSpec) DisplayName() string {
+	if s.Common().ID != "" {
+		return s.Common().ID
+	} else {
+		return s.Name
+	}
 }
 
 func DecoderConfigOption(config *mapstructure.DecoderConfig) {
@@ -85,7 +83,7 @@ func DecoderConfigOption(config *mapstructure.DecoderConfig) {
 		t reflect.Type,
 		data interface{},
 	) (interface{}, error) {
-		if f.Kind() != reflect.Map || t != reflect.TypeOf((*ISpec)(nil)).Elem() {
+		if f.Kind() != reflect.Map || t != reflect.TypeOf((*PackageSpec)(nil)).Elem() {
 			return data, nil
 		}
 

@@ -13,11 +13,11 @@ import (
 )
 
 type ReconcileError struct {
-	Spec ISpec
+	Spec PackageSpec
 	Err  error
 }
 
-func Reconcile(dir string, specs []ISpec) []*ReconcileError {
+func Reconcile(dir string, specs []PackageSpec) []*ReconcileError {
 	bars := make([]*ProgressBar, len(specs))
 	pool := pb.NewPool()
 	for i := range specs {
@@ -31,7 +31,7 @@ func Reconcile(dir string, specs []ISpec) []*ReconcileError {
 	pool.Start()
 	for i, spec := range specs {
 		wg.Add(1)
-		go func(spec ISpec, bar *ProgressBar, wg *sync.WaitGroup) {
+		go func(spec PackageSpec, bar *ProgressBar, wg *sync.WaitGroup) {
 			defer wg.Done()
 
 			err := func() error {
@@ -41,7 +41,11 @@ func Reconcile(dir string, specs []ISpec) []*ReconcileError {
 				}
 				defer os.RemoveAll(tmpDir)
 
-				dl, err := spec.Source().GetDownloader()
+				src, err := getSource(spec)
+				if err != nil {
+					return err
+				}
+				dl, err := src.GetDownloader()
 				if err != nil {
 					return err
 				}
@@ -81,4 +85,13 @@ func Reconcile(dir string, specs []ISpec) []*ReconcileError {
 	pool.Stop()
 
 	return es
+}
+
+func getSource(s PackageSpec) (Source, error) {
+	switch r := s.(type) {
+	case *GitHubReleaseSpec:
+		return NewGitHubRelease(r.Name, r.Ref)
+	default:
+		return nil, fmt.Errorf("Unknown spec detected. type=%T", r)
+	}
 }

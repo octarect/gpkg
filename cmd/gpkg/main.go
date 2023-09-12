@@ -33,13 +33,6 @@ var (
 				}
 				cfg.CachePath = filepath.Join(usrCacheDir, "gpkg")
 			}
-
-			for _, spec := range cfg.Specs {
-				if err := spec.Init(); err != nil {
-					return err
-				}
-			}
-
 			return nil
 		},
 	}
