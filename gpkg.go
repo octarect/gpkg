@@ -58,7 +58,7 @@ func Reconcile(dir string, specs []PackageSpec) []*ReconcileError {
 					return err
 				}
 
-				pkgCachePath := filepath.Join(dir, spec.GetDirName())
+				pkgCachePath := filepath.Join(dir, spec.DirName())
 				if err = cp.Copy(tmpDir, pkgCachePath); err != nil {
 					return err
 				}

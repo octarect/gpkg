@@ -20,10 +20,10 @@ func (c *Config) GetPackagesPath() string {
 }
 
 type PackageSpec interface {
-	Common()      *CommonSpec
-	Validate()    error
+	Common() *CommonSpec
+	Validate() error
 	DisplayName() string
-	GetDirName()  string
+	DirName() string
 	OriginalMap() map[string]interface{}
 }
 
@@ -65,7 +65,7 @@ func (s *GitHubReleaseSpec) Validate() error {
 	return nil
 }
 
-func (s *GitHubReleaseSpec) GetDirName() string {
+func (s *GitHubReleaseSpec) DirName() string {
 	return strings.Replace(s.Name, "/", "---", -1)
 }
 

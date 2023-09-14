@@ -98,7 +98,7 @@ func printReconcileErrors(es []*gpkg.ReconcileError) {
 func commandSource() error {
 	paths := make([]string, len(cfg.Specs))
 	for i, spec := range cfg.Specs {
-		paths[i] = filepath.Join(cfg.GetPackagesPath(), spec.GetDirName())
+		paths[i] = filepath.Join(cfg.GetPackagesPath(), spec.DirName())
 	}
 	fmt.Printf(`export PATH="$PATH:%s"`, strings.Join(paths, ":"))
 	return nil
