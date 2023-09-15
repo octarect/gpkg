@@ -53,11 +53,11 @@ var (
 			return commandUpdate()
 		},
 	}
-	sourceCmd = &cobra.Command{
-		Use:   "source",
-		Short: "Generate script to Source packages",
+	loadCmd = &cobra.Command{
+		Use:   "load",
+		Short: "Generate script to load packages",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return commandSource()
+			return commandLoad()
 		},
 	}
 )
@@ -65,7 +65,7 @@ var (
 func main() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(updateCmd)
-	rootCmd.AddCommand(sourceCmd)
+	rootCmd.AddCommand(loadCmd)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
@@ -95,7 +95,7 @@ func printReconcileErrors(es []*gpkg.ReconcileError) {
 	}
 }
 
-func commandSource() error {
+func commandLoad() error {
 	paths := make([]string, len(cfg.Specs))
 	for i, spec := range cfg.Specs {
 		paths[i] = filepath.Join(cfg.GetPackagesPath(), spec.DirName())
