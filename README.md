@@ -16,8 +16,10 @@ name = "junegunn/fzf"
 
 ### Load packages
 
+Installed plugins can be loaded using `load`.
+
 ```bash
-eval $(gpkg soruce)
+eval $(gpkg load)
 ```
 
 ## License
