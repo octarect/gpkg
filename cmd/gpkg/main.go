@@ -1,11 +1,11 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/octarect/gpkg"
 	"github.com/spf13/cobra"
@@ -72,27 +72,46 @@ func main() {
 	return
 }
 
-func commandUpdate() error {
-	es := gpkg.Reconcile(cfg.GetPackagesPath(), cfg.Specs)
-	if len(es) > 0 {
-		printReconcileErrors(es)
-		return errors.New("failed to update packages")
-	}
-
-	return nil
-}
-
 var errorFormat = `
 Error updating %s:
   => %s
 `
 
-func printReconcileErrors(es []*gpkg.ReconcileError) {
-	for _, e := range es {
-		m := e.Spec.OriginalMap()
-		fmt.Fprintf(os.Stderr, strings.TrimSpace(errorFormat), m["name"], e.Err)
+func commandUpdate() error {
+	for _, spec := range cfg.Specs {
+		ch := make(chan *gpkg.Event)
+		bar := newProgressBar(spec.DisplayName())
+		go func() {
+			for range time.Tick(500 * time.Millisecond) {
+				select {
+				case ev, ok := <- ch:
+					if !ok {
+						bar.Bar.Finish()
+						return
+					}
+					switch ev.Type {
+					case gpkg.EventStarted:
+						fmt.Printf("Installing %s\n", ev.Spec.DisplayName())
+						bar.Bar.Start()
+					case gpkg.EventDownloadStarted:
+						d := ev.Data.(gpkg.EventDataDownload)
+						bar.SetTotal(d.ContentLength)
+					case gpkg.EventCompleted:
+						bar.Bar.Finish()
+					}
+				}
+			}
+		}()
+
+		err := gpkg.ReconcilePackage(cfg.GetPackagesPath(), spec, ch, bar)
+		close(ch)
+		if err != nil {
+			return fmt.Errorf(strings.TrimSpace(errorFormat), spec.DisplayName(), err)
+		}
 		fmt.Println()
 	}
+
+	return nil
 }
 
 func commandLoad() error {

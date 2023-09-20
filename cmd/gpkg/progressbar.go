@@ -1,4 +1,4 @@
-package gpkg
+package main
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ type ProgressBar struct {
 	Bar *pb.ProgressBar
 }
 
-func NewProgressBar(name string) *ProgressBar {
+func newProgressBar(name string) *ProgressBar {
 	bar := pb.Full.New(0)
 	bar.SetRefreshRate(time.Millisecond * 500)
 	bar.Set(pb.Bytes, true)
