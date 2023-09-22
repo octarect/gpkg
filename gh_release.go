@@ -3,6 +3,7 @@ package gpkg
 import (
 	"context"
 	"fmt"
+	"io"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -92,7 +93,7 @@ func (p *GHReleasePackage) GetSpec() *PackageSpec {
 	return p.Spec
 }
 
-func (p *GHReleasePackage) Download(path string) error {
+func (p *GHReleasePackage) Download(path string, progress ProgressWriter) error {
 	r, err := p.releases.GetRelease(context.Background(), p.Spec.Ref)
 	if err != nil {
 		return fmt.Errorf("Failed to get release. ref=%s: %s", p.Spec.Ref, err)
@@ -111,17 +112,22 @@ func (p *GHReleasePackage) Download(path string) error {
 		return fmt.Errorf("No compatible asset found. ref=%s", p.Spec.Ref)
 	}
 
-	dl, err := download(url)
+	dl, total, err := download(url)
 	if err != nil {
 		return err
 	}
+	defer dl.Close()
+
+	progress.SetTotal(total)
+
+	tr := io.TeeReader(dl, progress)
 
 	if strings.HasSuffix(name, ".tar.gz") {
-		if err := extractTarGz(dl, path); err != nil {
+		if err := extractTarGz(tr, path); err != nil {
 			return err
 		}
 	} else {
-		if err := copyFile(filepath.Join(path, name), dl, 0755); err != nil {
+		if err := copyFile(filepath.Join(path, name), tr, 0755); err != nil {
 			return err
 		}
 	}

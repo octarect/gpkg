@@ -33,7 +33,7 @@ type DummyPackage struct {
 	LatestRef string
 }
 
-func (p *DummyPackage) Download(path string) error {
+func (p *DummyPackage) Download(path string, progress ProgressWriter) error {
 	return nil
 }
 

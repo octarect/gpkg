@@ -172,7 +172,7 @@ func TestDownload(t *testing.T) {
 		t.Run(tt.testName, func(t *testing.T) {
 			server := newTestServer(tt.handler)
 
-			r, err := download(server.URL)
+			r, _, err := download(server.URL)
 			require.NoError(t, err)
 
 			bs, err := io.ReadAll(r)

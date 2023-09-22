@@ -2,7 +2,6 @@ package gpkg
 
 import (
 	"archive/tar"
-	"bytes"
 	"compress/gzip"
 	"errors"
 	"fmt"
@@ -14,28 +13,22 @@ import (
 	"strings"
 )
 
-func download(u string) (*bytes.Reader, error) {
+func download(u string) (io.ReadCloser, int64, error) {
 	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	req.Header.Set("User-Agent", fmt.Sprintf("gpkg/%s", Version))
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code was returned. expected=200, got=%d, url=%s", resp.StatusCode, u)
+		return nil, 0, fmt.Errorf("unexpected status code was returned. expected=200, got=%d, url=%s", resp.StatusCode, u)
 	}
 
-	bs, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	br := bytes.NewReader(bs)
-
-	return br, nil
+	return resp.Body, resp.ContentLength, nil
 }
 
 func extractTarGz(gzipStream io.Reader, dst string) error {

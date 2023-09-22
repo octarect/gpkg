@@ -3,9 +3,11 @@ package gpkg
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	cp "github.com/otiai10/copy"
 )
@@ -63,48 +65,95 @@ func (m *Manager) GenerateScript() ([]byte, error) {
 }
 
 func (m *Manager) UpdatePackages(force bool) error {
+	wg := &sync.WaitGroup{}
+	mu := &sync.Mutex{}
+
+	type Result struct {
+		spec *PackageSpec
+		err  error
+	}
+	results := make([]*Result, 0, len(m.Packages))
+	appendResult := func(pkg Package, err error) {
+		mu.Lock()
+		results = append(results, &Result{
+			spec: pkg.GetSpec(),
+			err: err,
+		})
+		mu.Unlock()
+	}
+
+	ui := NewProgressUI()
+
 	for _, pkg := range m.Packages {
-		tmpDir, err := os.MkdirTemp("", "gpkg-*")
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(tmpDir)
+		wg.Add(1)
 
-		yes := true
-		if !force {
-			yes, err = m.shouldUpdate(pkg)
+		bar := ui.AddProgressBar(pkg.GetSpec().Name)
+		log.SetOutput(bar)
+
+		go func(pkg Package) {
+			defer wg.Done()
+			tmpDir, err := os.MkdirTemp("", "gpkg-*")
 			if err != nil {
-				return err
+				appendResult(pkg, err)
+				return
 			}
-		}
-		if yes {
-			if err = pkg.Download(tmpDir); err != nil {
-				return err
-			}
+			defer os.RemoveAll(tmpDir)
 
-			ref, err := getRef(pkg)
-			if err != nil {
-				return err
-			}
-			refFile := filepath.Join(tmpDir, ".pkgref")
-			if err = os.WriteFile(refFile, []byte(ref), 0666); err != nil {
-				return err
-			}
-
-			pkgDirName, err := pkg.GetDirName()
-			if err != nil {
-				return err
-			}
-			pkgCacheDir := filepath.Join(m.getPackagesDir(), pkgDirName)
-			if err = cp.Copy(tmpDir, pkgCacheDir); err != nil {
-				return err
-			}
-
-			if pkg.GetSpec().Pick != "" {
-				if err := NewPicker(pkg.GetSpec().Pick).Do(pkgCacheDir); err != nil {
-					return err
+			yes := true
+			if !force {
+				yes, err = m.shouldUpdate(pkg)
+				if err != nil {
+					appendResult(pkg, err)
+					return
 				}
 			}
+			if yes {
+				if err = pkg.Download(tmpDir, bar); err != nil {
+					appendResult(pkg, err)
+					return
+				}
+
+				ref, err := getRef(pkg)
+				if err != nil {
+					appendResult(pkg, err)
+					return
+				}
+				refFile := filepath.Join(tmpDir, ".pkgref")
+				if err = os.WriteFile(refFile, []byte(ref), 0666); err != nil {
+					appendResult(pkg, err)
+					return
+				}
+
+				pkgDirName, err := pkg.GetDirName()
+				if err != nil {
+					appendResult(pkg, err)
+					return
+				}
+				pkgCacheDir := filepath.Join(m.getPackagesDir(), pkgDirName)
+				if err = cp.Copy(tmpDir, pkgCacheDir); err != nil {
+					appendResult(pkg, err)
+					return
+				}
+
+				if pkg.GetSpec().Pick != "" {
+					if err := NewPicker(pkg.GetSpec().Pick).Do(pkgCacheDir); err != nil {
+						appendResult(pkg, err)
+						return
+					}
+				}
+			}
+
+			appendResult(pkg, nil)
+		}(pkg)
+	}
+
+	wg.Wait()
+
+	for _, r := range results {
+		fmt.Printf("%#v\n", r)
+		if r.err != nil {
+			fmt.Fprintf(os.Stderr, "Package \"%s\":\n", r.spec.Name)
+			fmt.Fprintf(os.Stderr, "\t%s\n", r.err)
 		}
 	}
 

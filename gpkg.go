@@ -10,10 +10,14 @@ import (
 )
 
 type PackageSpec struct {
-	From string
-	Name string
-	Pick string
-	Ref  string
+	From    string
+	ID      string
+	Name    string
+	Pattern string
+	Pick    string
+	Ref     string
+	Setup   string
+	Source  string
 }
 
 type Picker struct {
@@ -95,7 +99,7 @@ func (p *Picker) Do(root string) error {
 }
 
 type Package interface {
-	Download(string) error
+	Download(string, ProgressWriter) error
 	FetchLatestRef() (string, error)
 	GetDirName() (string, error)
 	GetSpec() *PackageSpec
