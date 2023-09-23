@@ -34,12 +34,14 @@ func ReconcilePackage(dir string, spec PackageSpec, ch chan<-*Event, w io.Writer
 	if err = extract(r, tmpDir, dl.GetAssetName()); err != nil {
 		return err
 	}
+	ch <- builder.downloadCompleted()
 
 	pkgCachePath := filepath.Join(dir, spec.DirName())
 	if err = cp.Copy(tmpDir, pkgCachePath); err != nil {
 		return err
 	}
 
+	ch <- builder.pickStarted()
 	if spec.Common().Pick != "" {
 		if err := NewPicker(spec.Common().Pick).Do(pkgCachePath); err != nil {
 			return err

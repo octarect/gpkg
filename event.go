@@ -5,6 +5,8 @@ const (
 	EventStarted   EventType = iota
 	EventCompleted EventType = iota
 	EventDownloadStarted
+	EventDownloadCompleted
+	EventPickStarted
 )
 
 type Event struct {
@@ -46,5 +48,19 @@ func (b *EventBuilder) downloadStarted(dl Downloader) *Event {
 		Data: EventDataDownload{
 			ContentLength: dl.GetContentLength(),
 		},
+	}
+}
+
+func (b *EventBuilder) downloadCompleted() *Event {
+	return &Event{
+		Type: EventDownloadCompleted,
+		Spec: b.spec,
+	}
+}
+
+func (b *EventBuilder) pickStarted() *Event {
+	return &Event{
+		Type: EventPickStarted,
+		Spec: b.spec,
 	}
 }

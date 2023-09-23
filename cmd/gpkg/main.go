@@ -96,8 +96,10 @@ func commandUpdate() error {
 					case gpkg.EventDownloadStarted:
 						d := ev.Data.(gpkg.EventDataDownload)
 						bar.SetTotal(d.ContentLength)
-					case gpkg.EventCompleted:
+					case gpkg.EventDownloadCompleted:
 						bar.Bar.Finish()
+					case gpkg.EventPickStarted:
+						fmt.Printf("[INFO] Picking %s\n", ev.Spec.Common().Pick)
 					}
 				}
 			}
