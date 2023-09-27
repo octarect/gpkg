@@ -117,6 +117,15 @@ func (m *Manager) UpdatePackages(force bool) error {
 	return nil
 }
 
+func (m *Manager) UpdatePackagesV2(force bool) error {
+	for _, pkg := range m.Packages {
+		go func(pkg Package) {
+			fmt.Println(pkg.GetSpec().Name)
+		}(pkg)
+	}
+	return nil
+}
+
 func (m *Manager) shouldUpdate(pkg Package) (update bool, err error) {
 	nextRef, err := getRef(pkg)
 
