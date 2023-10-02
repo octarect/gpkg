@@ -56,7 +56,7 @@ func ReconcilePackage(dir string, spec PackageSpec, ch chan<-*Event, w io.Writer
 func getSource(s PackageSpec) (Source, error) {
 	switch r := s.(type) {
 	case *GitHubReleaseSpec:
-		return NewGitHubRelease(r.Name, r.Ref)
+		return NewGitHubRelease(r.Repo, r.Ref)
 	default:
 		return nil, fmt.Errorf("Unknown spec detected. type=%T", r)
 	}

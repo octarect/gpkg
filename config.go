@@ -57,7 +57,7 @@ func (s *CommonSpec) DisplayName() string {
 
 type GitHubReleaseSpec struct {
 	*CommonSpec
-	Name string
+	Repo string
 	Pick string
 }
 
@@ -66,14 +66,14 @@ func (s *GitHubReleaseSpec) Validate() error {
 }
 
 func (s *GitHubReleaseSpec) DirName() string {
-	return strings.Replace(s.Name, "/", "---", -1)
+	return strings.Replace(s.Repo, "/", "---", -1)
 }
 
 func (s *GitHubReleaseSpec) DisplayName() string {
 	if s.Common().ID != "" {
 		return s.Common().ID
 	} else {
-		return s.Name
+		return s.Repo
 	}
 }
 
