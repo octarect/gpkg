@@ -11,7 +11,7 @@ Super great package manager.
 ```toml
 [[packages]]
 from = "ghr"
-name = "junegunn/fzf"
+repo = "junegunn/fzf"
 ```
 
 ### Load packages
