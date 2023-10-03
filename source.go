@@ -16,36 +16,6 @@ type Downloader interface {
 	GetContentLength() int64
 }
 
-type WrapperDownloader struct {
-	r     io.ReadCloser
-	name  string
-	total int64
-}
-
-func NewWrapperDownloader(r io.ReadCloser, name string, total int64) *WrapperDownloader {
-	return &WrapperDownloader{
-		r:     r,
-		name:  name,
-		total: total,
-	}
-}
-
-func (dl *WrapperDownloader) Read(p []byte) (int, error) {
-	return dl.r.Read(p)
-}
-
-func (dl *WrapperDownloader) Close() error {
-	return dl.r.Close()
-}
-
-func (dl *WrapperDownloader) GetAssetName() string {
-	return dl.name
-}
-
-func (dl *WrapperDownloader) GetContentLength() int64 {
-	return dl.total
-}
-
 type HTTPDownloader struct {
 	r     io.ReadCloser
 	name  string
