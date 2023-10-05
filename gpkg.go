@@ -9,7 +9,7 @@ import (
 	cp "github.com/otiai10/copy"
 )
 
-func ReconcilePackage(dir string, spec PackageSpec, ch chan<-*Event, w io.Writer) error {
+func ReconcilePackage(dir string, spec PackageSpec, ch chan<- *Event, w io.Writer) error {
 	builder := newEventBuilder(spec)
 	ch <- builder.started()
 	tmpDir, err := os.MkdirTemp("", "gpkg-*")
@@ -43,7 +43,7 @@ func ReconcilePackage(dir string, spec PackageSpec, ch chan<-*Event, w io.Writer
 
 	ch <- builder.pickStarted()
 	if spec.Common().Pick != "" {
-		if err := NewPicker(spec.Common().Pick).Do(pkgCachePath); err != nil {
+		if err := Pick(pkgCachePath, spec.Common().Pick); err != nil {
 			return err
 		}
 	}

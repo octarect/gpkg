@@ -1,6 +1,7 @@
 package gpkg
 
 type EventType uint8
+
 const (
 	EventStarted   EventType = iota
 	EventCompleted EventType = iota

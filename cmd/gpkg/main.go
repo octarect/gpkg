@@ -84,7 +84,7 @@ func commandUpdate() error {
 		go func() {
 			for range time.Tick(500 * time.Millisecond) {
 				select {
-				case ev, ok := <- ch:
+				case ev, ok := <-ch:
 					if !ok {
 						bar.Bar.Finish()
 						return

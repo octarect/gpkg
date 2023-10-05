@@ -10,26 +10,18 @@ import (
 	"strings"
 )
 
-type Picker struct {
-	lhs string
-	rhs string
-}
-
-func NewPicker(s string) *Picker {
-	p := &Picker{}
-	l := strings.Split(s, "->")
+func Pick(root, expr string) error {
+	var lhs, rhs string
+	l := strings.Split(expr, "->")
 	switch len(l) {
 	case 2:
-		p.rhs = strings.TrimSpace(l[1])
+		rhs = strings.TrimSpace(l[1])
 		fallthrough
 	case 1:
-		p.lhs = strings.TrimSpace(l[0])
+		lhs = strings.TrimSpace(l[0])
 	}
-	return p
-}
 
-func (p *Picker) Do(root string) error {
-	reg, err := regexp.Compile(fmt.Sprintf(`\A%s\z`, p.lhs))
+	reg, err := regexp.Compile(fmt.Sprintf(`\A%s\z`, lhs))
 	if err != nil {
 		return err
 	}
@@ -53,8 +45,8 @@ func (p *Picker) Do(root string) error {
 			}
 
 			var dst string
-			if p.rhs != "" {
-				dst = filepath.Join(root, p.rhs)
+			if rhs != "" {
+				dst = filepath.Join(root, rhs)
 			} else {
 				dst = filepath.Join(root, filepath.Base(path))
 			}
