@@ -85,5 +85,11 @@ func Pick(root, expr string) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("Error while picking files. err=%v", err)
+	}
+	if cnt == 0 {
+		return fmt.Errorf("No file matched with the expression. expr=%s", expr)
+	}
 	return nil
 }

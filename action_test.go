@@ -74,6 +74,12 @@ func TestPickerDo(t *testing.T) {
 			ok,
 		},
 		{
+			"no file matched with an expression",
+			`invalid-expression`,
+			nil,
+			ng,
+		},
+		{
 			"rename",
 			`qux-.* -> qux`,
 			[]string{
