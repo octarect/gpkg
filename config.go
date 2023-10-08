@@ -1,11 +1,15 @@
 package gpkg
 
 import (
+	"embed"
 	"errors"
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strings"
+	"text/template"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -112,4 +116,26 @@ func DecoderConfigOption(config *mapstructure.DecoderConfig) {
 			return nil, fmt.Errorf("invalid spec. from=%s", cs.From)
 		}
 	}
+}
+
+//go:embed templates
+var tmplFS embed.FS
+
+func CreateConfigFile(cfgPath string) error {
+	err := os.MkdirAll(filepath.Dir(cfgPath), 0744)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(cfgPath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	tmpl, _ := template.ParseFS(tmplFS, "templates/new_config.toml.tmpl")
+	if err = tmpl.Execute(f, "dummy"); err != nil {
+		return fmt.Errorf("failed to create a new config file from template. path=%q, err=%v", cfgPath, err)
+	}
+
+	return nil
 }
