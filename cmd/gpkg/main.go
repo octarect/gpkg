@@ -19,6 +19,8 @@ var (
 		Use:   "gpkg",
 		Short: "A package manager for CLI environment",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+
 			var err error
 			if cfgPath == "" {
 				if cfgPath, err = defaultConfigPath(); err != nil {
