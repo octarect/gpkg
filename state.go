@@ -14,6 +14,7 @@ import (
 type State struct {
 	Spec PackageSpec `json:"spec"`
 	Path string      `json:"path"`
+	Ref  string      `json:"ref"`
 }
 
 type StateData struct {
@@ -91,6 +92,7 @@ func (sd *StateData) FindState(spec PackageSpec) (int, *State, error) {
 		if ok := SpecEqual(st.Spec, spec); ok {
 			idx = i
 			found = &st
+			break
 		}
 	}
 	if idx == -1 {
@@ -105,6 +107,7 @@ func (sd *StateData) Upsert(spec PackageSpec, ref string) {
 	s0 := State{
 		Spec: spec,
 		Path: spec.PackagePath(),
+		Ref:  ref,
 	}
 
 	if err != nil {

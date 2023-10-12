@@ -240,6 +240,7 @@ func TestStateData_Upsert(t *testing.T) {
 					{
 						Spec: foo,
 						Path: foo.PackagePath(),
+						Ref:  foo.Ref,
 					},
 				},
 			},
@@ -252,6 +253,7 @@ func TestStateData_Upsert(t *testing.T) {
 					{
 						Spec: bar,
 						Path: bar.PackagePath(),
+						Ref:  bar.Ref,
 					},
 				},
 			},
@@ -260,10 +262,12 @@ func TestStateData_Upsert(t *testing.T) {
 					{
 						Spec: bar,
 						Path: bar.PackagePath(),
+						Ref:  bar.Ref,
 					},
 					{
 						Spec: foo,
 						Path: foo.PackagePath(),
+						Ref:  foo.Ref,
 					},
 				},
 			},
@@ -276,6 +280,7 @@ func TestStateData_Upsert(t *testing.T) {
 					{
 						Spec: foo,
 						Path: foo.PackagePath(),
+						Ref:  foo.Ref,
 					},
 				},
 			},
@@ -284,6 +289,7 @@ func TestStateData_Upsert(t *testing.T) {
 					{
 						Spec: fooV2,
 						Path: fooV2.PackagePath(),
+						Ref:  fooV2.Ref,
 					},
 				},
 			},

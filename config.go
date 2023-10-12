@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -28,6 +29,7 @@ type PackageSpec interface {
 	Validate() error
 	DisplayName() string
 	PackagePath() string
+	Unique() string
 }
 
 type CommonSpec struct {
@@ -54,6 +56,13 @@ func (s *CommonSpec) DisplayName() string {
 	return s.ID
 }
 
+func (s *CommonSpec) formatUnique(name string) string {
+	if s.ID != "" {
+		name = fmt.Sprintf("%s@%s", name, s.ID)
+	}
+	return name
+}
+
 type GitHubReleaseSpec struct {
 	*CommonSpec
 	Repo string `json:"repo"`
@@ -76,9 +85,12 @@ func (s *GitHubReleaseSpec) PackagePath() string {
 	return filepath.Join(s.config.GetPackagesPath(), dir)
 }
 
+func (s *GitHubReleaseSpec) Unique() string {
+	return s.Common().formatUnique(s.Repo)
+}
 
 func SpecEqual(a, b PackageSpec) bool {
-	return a.PackagePath() == b.PackagePath()
+	return a.Unique() == b.Unique()
 }
 
 func DecoderConfigOption(cfg *Config) func(*mapstructure.DecoderConfig) {

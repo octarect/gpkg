@@ -104,3 +104,7 @@ func NewNopSpec(id string) *NopSpec {
 func (s *NopSpec) PackagePath() string {
 	return filepath.Join(s.config.GetPackagesPath(), s.ID)
 }
+
+func (s *NopSpec) Unique() string {
+	return s.ID
+}
