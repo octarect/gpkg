@@ -10,26 +10,6 @@ import (
 
 var defaultTestEventBuilder = newEventBuilder(&NopSpec{})
 
-// NopSpec implements PackageSpec interface and its methods do nothing.
-// You can use this struct in test code.
-type NopSpec struct {
-	*CommonSpec
-}
-
-var _ PackageSpec = &NopSpec{}
-
-func (s *NopSpec) Validate() error {
-	return nil
-}
-
-func (s *NopSpec) DirName() string {
-	return "nop"
-}
-
-func (s *NopSpec) DisplayName() string {
-	return "nop"
-}
-
 // DummyDownloader implements Downloader interface.
 // When you call read(), it returns `buf` instead of actually downloading from remote.
 type DummyDownloader struct {

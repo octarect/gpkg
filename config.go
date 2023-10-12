@@ -15,8 +15,8 @@ import (
 )
 
 type Config struct {
-	CachePath string        `mapstructure:"cache_path"`
-	Specs     []PackageSpec `mapstructure:"packages"`
+	CachePath string        `json:"cache_path"`
+	Specs     []PackageSpec `json:"packages"`
 }
 
 func (c *Config) GetPackagesPath() string {
@@ -27,25 +27,20 @@ type PackageSpec interface {
 	Common() *CommonSpec
 	Validate() error
 	DisplayName() string
-	DirName() string
-	OriginalMap() map[string]interface{}
+	PackagePath() string
 }
 
 type CommonSpec struct {
-	From string
-	Pick string
-	Ref  string
-	ID   string
+	From string `json:"from"`
+	Pick string `json:"pick,omitempty"`
+	Ref  string `json:"ref,omitempty"`
+	ID   string `json:"id,omitempty"`
 
-	m map[string]interface{}
+	config *Config
 }
 
 func (s *CommonSpec) Common() *CommonSpec {
 	return s
-}
-
-func (s *CommonSpec) OriginalMap() map[string]interface{} {
-	return s.m
 }
 
 func (s *CommonSpec) Validate() error {
@@ -61,16 +56,11 @@ func (s *CommonSpec) DisplayName() string {
 
 type GitHubReleaseSpec struct {
 	*CommonSpec
-	Repo string
-	Pick string
+	Repo string `json:"repo"`
 }
 
 func (s *GitHubReleaseSpec) Validate() error {
 	return nil
-}
-
-func (s *GitHubReleaseSpec) DirName() string {
-	return strings.Replace(s.Repo, "/", "---", -1)
 }
 
 func (s *GitHubReleaseSpec) DisplayName() string {
@@ -81,39 +71,52 @@ func (s *GitHubReleaseSpec) DisplayName() string {
 	}
 }
 
-func DecoderConfigOption(config *mapstructure.DecoderConfig) {
-	config.DecodeHook = func(
-		f reflect.Type,
-		t reflect.Type,
-		data interface{},
-	) (interface{}, error) {
-		if f.Kind() != reflect.Map || t != reflect.TypeOf((*PackageSpec)(nil)).Elem() {
-			return data, nil
-		}
+func (s *GitHubReleaseSpec) PackagePath() string {
+	dir := strings.Replace(s.Repo, "/", "---", -1)
+	return filepath.Join(s.config.GetPackagesPath(), dir)
+}
 
-		m, _ := data.(map[string]interface{})
-		cs := &CommonSpec{}
-		if err := mapstructure.Decode(m, &cs); err != nil {
-			return nil, err
-		}
-		if err := cs.Validate(); err != nil {
-			return nil, err
-		}
-		cs.m = m
 
-		switch cs.From {
-		case "ghr":
-			ghr := &GitHubReleaseSpec{}
-			if err := mapstructure.Decode(m, &ghr); err != nil {
+func SpecEqual(a, b PackageSpec) bool {
+	return a.PackagePath() == b.PackagePath()
+}
+
+func DecoderConfigOption(cfg *Config) func(*mapstructure.DecoderConfig) {
+	return func(dc *mapstructure.DecoderConfig) {
+		dc.TagName = "json"
+		dc.DecodeHook = func(
+			f reflect.Type,
+			t reflect.Type,
+			data interface{},
+		) (interface{}, error) {
+			if f.Kind() != reflect.Map || t != reflect.TypeOf((*PackageSpec)(nil)).Elem() {
+				return data, nil
+			}
+
+			m, _ := data.(map[string]interface{})
+			cs := &CommonSpec{}
+			if err := mapstructure.Decode(m, &cs); err != nil {
 				return nil, err
 			}
-			if err := ghr.Validate(); err != nil {
+			if err := cs.Validate(); err != nil {
 				return nil, err
 			}
-			ghr.CommonSpec = cs
-			return ghr, nil
-		default:
-			return nil, fmt.Errorf("invalid spec. from=%s", cs.From)
+			cs.config = cfg
+
+			switch cs.From {
+			case "ghr":
+				ghr := &GitHubReleaseSpec{}
+				if err := mapstructure.Decode(m, &ghr); err != nil {
+					return nil, err
+				}
+				if err := ghr.Validate(); err != nil {
+					return nil, err
+				}
+				ghr.CommonSpec = cs
+				return ghr, nil
+			default:
+				return nil, fmt.Errorf("invalid spec. from=%s", cs.From)
+			}
 		}
 	}
 }

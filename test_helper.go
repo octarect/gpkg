@@ -80,3 +80,27 @@ func checkDiff(t *testing.T, valueType, expected, got interface{}, ignoreFields 
 		t.Errorf("diff: -expected, +got:\n%s", diff)
 	}
 }
+
+// NopSpec implements PackageSpec interface and its methods do nothing.
+// You can use this struct in test code.
+type NopSpec struct {
+	*CommonSpec
+}
+
+var _ PackageSpec = &NopSpec{}
+
+func NewNopSpec(id string) *NopSpec {
+	return &NopSpec{
+		CommonSpec: &CommonSpec{
+			From: "nop",
+			ID:   id,
+			config: &Config{
+				CachePath: "/tmp",
+			},
+		},
+	}
+}
+
+func (s *NopSpec) PackagePath() string {
+	return filepath.Join(s.config.GetPackagesPath(), s.ID)
+}

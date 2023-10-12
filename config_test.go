@@ -2,6 +2,7 @@ package gpkg
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -57,6 +58,25 @@ func TestCreateConfigFile(t *testing.T) {
 				t.Fatal(err)
 			}
 			assert.Equal(t, expected.String(), string(got))
+		})
+	}
+}
+
+func TestSpecEqual(t *testing.T) {
+	tests := []struct {
+		a        PackageSpec
+		b        PackageSpec
+		expected bool
+	}{
+		{NewNopSpec("foo"), NewNopSpec("foo"), true},
+		{NewNopSpec("foo"), NewNopSpec("bar"), false},
+	}
+
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("test%02d", i), func(t *testing.T) {
+			if got := SpecEqual(tt.a, tt.b); got != tt.expected {
+				t.Errorf("Unexpected value returned. expected=%v, got=%v", tt.expected, got)
+			}
 		})
 	}
 }

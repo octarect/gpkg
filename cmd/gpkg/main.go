@@ -36,7 +36,7 @@ var (
 			if err := viper.ReadInConfig(); err != nil {
 				return err
 			}
-			if err := viper.Unmarshal(&cfg, gpkg.DecoderConfigOption); err != nil {
+			if err := viper.Unmarshal(&cfg, gpkg.DecoderConfigOption(&cfg)); err != nil {
 				return err
 			}
 
@@ -121,6 +121,13 @@ Error updating %s:
 `
 
 func commandUpdate() error {
+	statePath := filepath.Join(cfg.CachePath, "states.json")
+	states, err := gpkg.LoadStateDataFromFile(statePath)
+	if err != nil {
+		return err
+	}
+	defer states.SaveToFile(statePath)
+
 	for _, spec := range cfg.Specs {
 		ch := make(chan *gpkg.Event)
 		bar := newProgressBar(spec.DisplayName())
@@ -148,7 +155,7 @@ func commandUpdate() error {
 			}
 		}()
 
-		err := gpkg.ReconcilePackage(cfg.GetPackagesPath(), spec, ch, bar)
+		err = gpkg.ReconcilePackage(cfg.GetPackagesPath(), states, spec, ch, bar)
 		close(ch)
 		if err != nil {
 			return fmt.Errorf(strings.TrimSpace(errorFormat), spec.DisplayName(), err)
@@ -160,11 +167,18 @@ func commandUpdate() error {
 }
 
 func commandLoad() error {
-	paths := make([]string, len(cfg.Specs))
-	for i, spec := range cfg.Specs {
-		paths[i] = filepath.Join(cfg.GetPackagesPath(), spec.DirName())
+	states, err := loadStateData()
+	if err != nil {
+		return err
 	}
-	fmt.Printf(`export PATH="$PATH:%s"`, strings.Join(paths, ":"))
+
+	paths := make([]string, len(states.States)+1)
+	paths[0] = "$PATH"
+	for i, st := range states.States {
+		paths[i+1] = st.Path
+	}
+	fmt.Printf(`export PATH="%s"`, strings.Join(paths, ":"))
+
 	return nil
 }
 
@@ -182,6 +196,15 @@ func defaultCachePath() (string, error) {
 		return "", err
 	}
 	return filepath.Join(usrCacheDir, "gpkg"), nil
+}
+
+func loadStateData() (*gpkg.StateData, error) {
+	statePath := filepath.Join(cfg.CachePath, "states.json")
+	states, err := gpkg.LoadStateDataFromFile(statePath)
+	if err != nil {
+		return nil, err
+	}
+	return states, nil
 }
 
 func prompt(message string) (bool, error) {

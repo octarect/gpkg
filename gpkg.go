@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	cp "github.com/otiai10/copy"
 )
 
-func ReconcilePackage(dir string, spec PackageSpec, ch chan<- *Event, w io.Writer) error {
+func ReconcilePackage(packagesDir string, states *StateData, spec PackageSpec, ch chan<- *Event, w io.Writer) error {
 	builder := newEventBuilder(spec)
 	ch <- builder.started()
 	tmpDir, err := os.MkdirTemp("", "gpkg-*")
@@ -36,17 +35,18 @@ func ReconcilePackage(dir string, spec PackageSpec, ch chan<- *Event, w io.Write
 	}
 	ch <- builder.downloadCompleted()
 
-	pkgCachePath := filepath.Join(dir, spec.DirName())
-	if err = cp.Copy(tmpDir, pkgCachePath); err != nil {
+	if err = cp.Copy(tmpDir, spec.PackagePath()); err != nil {
 		return err
 	}
 
 	ch <- builder.pickStarted()
 	if spec.Common().Pick != "" {
-		if err := Pick(pkgCachePath, spec.Common().Pick); err != nil {
+		if err := Pick(spec.PackagePath(), spec.Common().Pick); err != nil {
 			return err
 		}
 	}
+
+	states.Upsert(spec, spec.Common().Ref)
 
 	ch <- builder.completed()
 
