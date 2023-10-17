@@ -3,21 +3,18 @@ package gpkg
 type EventType uint8
 
 const (
-	EventStarted   EventType = iota
-	EventCompleted EventType = iota
+	EventStarted EventType = iota
+	EventCompleted
 	EventDownloadStarted
 	EventDownloadCompleted
 	EventPickStarted
+	EventSkipped
 )
 
 type Event struct {
 	Type EventType
 	Spec PackageSpec
 	Data interface{}
-}
-
-type EventDataDownload struct {
-	ContentLength int64
 }
 
 type EventBuilder struct {
@@ -42,12 +39,20 @@ func (b *EventBuilder) completed() *Event {
 	}
 }
 
-func (b *EventBuilder) downloadStarted(dl Downloader) *Event {
+type EventDataDownload struct {
+	ContentLength int64
+	CurrentRef    string
+	NextRef       string
+}
+
+func (b *EventBuilder) downloadStarted(dl Downloader, currentRef, nextRef string) *Event {
 	return &Event{
 		Type: EventDownloadStarted,
 		Spec: b.spec,
 		Data: EventDataDownload{
 			ContentLength: dl.GetContentLength(),
+			CurrentRef:    currentRef,
+			NextRef:       nextRef,
 		},
 	}
 }
@@ -63,5 +68,19 @@ func (b *EventBuilder) pickStarted() *Event {
 	return &Event{
 		Type: EventPickStarted,
 		Spec: b.spec,
+	}
+}
+
+type EventDataSkipped struct {
+	CurrentRef string
+}
+
+func (b *EventBuilder) skipped(currentRef string) *Event {
+	return &Event{
+		Type: EventSkipped,
+		Spec: b.spec,
+		Data: EventDataSkipped{
+			CurrentRef: currentRef,
+		},
 	}
 }

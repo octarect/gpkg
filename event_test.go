@@ -56,11 +56,13 @@ func TestEventBuilder_completed(t *testing.T) {
 
 func TestEventBuilder_downloadStarted(t *testing.T) {
 	dl := newDummyDownloader()
-	got := defaultTestEventBuilder.downloadStarted(dl)
+	got := defaultTestEventBuilder.downloadStarted(dl, "v0.1", "v0.2")
 	expected := &Event{
 		Type: EventDownloadStarted,
 		Data: EventDataDownload{
 			ContentLength: dl.GetContentLength(),
+			CurrentRef:    "v0.1",
+			NextRef:       "v0.2",
 		},
 	}
 	checkDiff(t, Event{}, expected, got, "Spec")
@@ -78,6 +80,17 @@ func TestEventBuilder_pickStarted(t *testing.T) {
 	got := defaultTestEventBuilder.pickStarted()
 	expected := &Event{
 		Type: EventPickStarted,
+	}
+	checkDiff(t, Event{}, expected, got, "Spec")
+}
+
+func TestEventBuilder_skipped(t *testing.T) {
+	got := defaultTestEventBuilder.skipped("v1.0.0")
+	expected := &Event{
+		Type: EventSkipped,
+		Data: EventDataSkipped{
+			CurrentRef: "v1.0.0",
+		},
 	}
 	checkDiff(t, Event{}, expected, got, "Spec")
 }

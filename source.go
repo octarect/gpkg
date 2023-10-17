@@ -8,6 +8,7 @@ import (
 
 type Source interface {
 	GetDownloader() (Downloader, error)
+	ShouldUpdate(string) (bool, string, error)
 }
 
 type Downloader interface {

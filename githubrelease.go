@@ -6,42 +6,84 @@ import (
 	"io"
 	"runtime"
 	"strings"
-	"sync"
 
 	"github.com/google/go-github/v53/github"
 )
+
+type GitHubRelease struct {
+	owner string
+	repo  string
+	ref   string
+
+	client     *github.Client
+	downloader io.ReadCloser
+	length     int64
+	assetName  string
+}
+
+func NewGitHubRelease(name, ref string) (*GitHubRelease, error) {
+	parts := strings.Split(name, "/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("failed to get owner and repo")
+	}
+	owner := parts[0]
+	repo := parts[1]
+
+	return &GitHubRelease{
+		owner:  owner,
+		repo:   repo,
+		ref:    ref,
+		client: github.NewClient(nil),
+	}, nil
+}
+
+func (ghr *GitHubRelease) GetDownloader() (Downloader, error) {
+	r, err := ghr.fetchRelease(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	var name, url string
+	for k, v := range r.assets {
+		if isCompatibleRelease(k) {
+			name = k
+			url = v
+			break
+		}
+	}
+	if name == "" {
+		return nil, fmt.Errorf("No compatible asset found. ref=%s", ghr.ref)
+	}
+	dl, err := NewHTTPDownloader(name, url)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create a downloader. err=%s", err)
+	}
+	return dl, nil
+}
+
+func (ghr *GitHubRelease) ShouldUpdate(currentRef string) (bool, string, error) {
+	if ghr.ref == "latest" || ghr.ref == "" {
+		rr, _, err := ghr.client.Repositories.GetLatestRelease(context.Background(), ghr.owner, ghr.repo)
+		if err != nil {
+			return false, "", err
+		}
+		return rr.GetTagName() != currentRef, rr.GetTagName(), nil
+	}
+	return ghr.ref != currentRef, ghr.ref, nil
+}
 
 type ReleaseData struct {
 	ref    string
 	assets map[string]string
 }
 
-type ReleaseFetcher interface {
-	Fetch(context.Context, string) (*ReleaseData, error)
-}
-
-type GitHubRepo struct {
-	owner  string
-	repo   string
-	client *github.Client
-}
-
-func NewGitHubRepo(owner, repo string) *GitHubRepo {
-	return &GitHubRepo{
-		owner:  owner,
-		repo:   repo,
-		client: github.NewClient(nil),
-	}
-}
-
-func (r *GitHubRepo) GetRelease(ctx context.Context, ref string) (*ReleaseData, error) {
+func (ghr *GitHubRelease) fetchRelease(ctx context.Context) (*ReleaseData, error) {
 	var rr *github.RepositoryRelease
 	var err error
 
-	if ref == "latest" || ref == "" {
-		rr, _, err = r.client.Repositories.GetLatestRelease(ctx, r.owner, r.repo)
+	if ghr.ref == "latest" || ghr.ref == "" {
+		rr, _, err = ghr.client.Repositories.GetLatestRelease(ctx, ghr.owner, ghr.repo)
 	} else {
-		rr, _, err = r.client.Repositories.GetReleaseByTag(ctx, r.owner, r.repo, ref)
+		rr, _, err = ghr.client.Repositories.GetReleaseByTag(ctx, ghr.owner, ghr.repo, ghr.ref)
 	}
 	if err != nil {
 		return nil, err
@@ -64,53 +106,3 @@ func isCompatibleRelease(s string) bool {
 	return hasOS && hasArch
 }
 
-type GitHubRelease struct {
-	owner string
-	repo  string
-	ref   string
-
-	downloader io.ReadCloser
-	length     int64
-	assetName  string
-
-	once sync.Once
-}
-
-func NewGitHubRelease(name, ref string) (*GitHubRelease, error) {
-	parts := strings.Split(name, "/")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("failed to get owner and repo")
-	}
-	owner := parts[0]
-	repo := parts[1]
-
-	return &GitHubRelease{
-		owner: owner,
-		repo:  repo,
-		ref:   ref,
-	}, nil
-}
-
-func (ghr *GitHubRelease) GetDownloader() (Downloader, error) {
-	gr := NewGitHubRepo(ghr.owner, ghr.repo)
-	r, err := gr.GetRelease(context.Background(), ghr.ref)
-	if err != nil {
-		return nil, err
-	}
-	var name, url string
-	for k, v := range r.assets {
-		if isCompatibleRelease(k) {
-			name = k
-			url = v
-			break
-		}
-	}
-	if name == "" {
-		return nil, fmt.Errorf("No compatible asset found. ref=%s", ghr.ref)
-	}
-	dl, err := NewHTTPDownloader(name, url)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create a downloader. err=%s", err)
-	}
-	return dl, nil
-}

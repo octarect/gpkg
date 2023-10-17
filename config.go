@@ -56,6 +56,16 @@ func (s *CommonSpec) DisplayName() string {
 	return s.ID
 }
 
+var reEscapeFilePath = regexp.MustCompile(`([\\/:\?\*\|])`)
+
+func (s *CommonSpec) formatPackagePath(dir string) string {
+	if s.ID != "" {
+		dir = fmt.Sprintf("%s@%s", dir, s.ID)
+	}
+	escaped := reEscapeFilePath.ReplaceAllString(dir, `\\$1`)
+	return filepath.Join(s.config.GetPackagesPath(), escaped)
+}
+
 func (s *CommonSpec) formatUnique(name string) string {
 	if s.ID != "" {
 		name = fmt.Sprintf("%s@%s", name, s.ID)
@@ -82,7 +92,7 @@ func (s *GitHubReleaseSpec) DisplayName() string {
 
 func (s *GitHubReleaseSpec) PackagePath() string {
 	dir := strings.Replace(s.Repo, "/", "---", -1)
-	return filepath.Join(s.config.GetPackagesPath(), dir)
+	return s.Common().formatPackagePath(dir)
 }
 
 func (s *GitHubReleaseSpec) Unique() string {

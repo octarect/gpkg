@@ -136,20 +136,29 @@ func commandUpdate() error {
 				select {
 				case ev, ok := <-ch:
 					if !ok {
-						bar.Bar.Finish()
+						bar.Finish()
 						return
 					}
 					switch ev.Type {
 					case gpkg.EventStarted:
-						fmt.Printf("Installing %s\n", ev.Spec.DisplayName())
-						bar.Bar.Start()
+						fmt.Printf("%s\n", ev.Spec.DisplayName())
 					case gpkg.EventDownloadStarted:
 						d := ev.Data.(gpkg.EventDataDownload)
+						if d.CurrentRef == "" {
+							fmt.Printf("[INFO] New package: version=%s\n", d.NextRef)
+						} else {
+							fmt.Printf("[INFO] The package will be updated. current=%s, next=%s\n", d.CurrentRef, d.NextRef)
+						}
+						fmt.Printf("[INFO] Downloading...\n")
+						bar.Start()
 						bar.SetTotal(d.ContentLength)
 					case gpkg.EventDownloadCompleted:
-						bar.Bar.Finish()
+						bar.Finish()
 					case gpkg.EventPickStarted:
 						fmt.Printf("[INFO] Picking %s\n", ev.Spec.Common().Pick)
+					case gpkg.EventSkipped:
+						d := ev.Data.(gpkg.EventDataSkipped)
+						fmt.Printf("[INFO] %s is already up to date. current=%s\n", ev.Spec.Unique(), d.CurrentRef)
 					}
 				}
 			}

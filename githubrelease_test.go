@@ -6,15 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewGitHubRepo(t *testing.T) {
-	got := NewGitHubRepo("owner", "repo")
-	expected := &GitHubRepo{
-		owner: "owner",
-		repo:  "repo",
-	}
-	checkDiff(t, GitHubRepo{}, expected, got, "client")
-}
-
 func TestNewGitHubRelease(t *testing.T) {
 	ref := "latest"
 	type expected struct {
@@ -43,7 +34,7 @@ func TestNewGitHubRelease(t *testing.T) {
 					repo:  tt.expected.repo,
 					ref:   ref,
 				}
-				checkDiff(t, GitHubRelease{}, ghr, expected, "downloader", "length", "assetName", "once")
+				checkDiff(t, GitHubRelease{}, ghr, expected, "client", "downloader", "length", "assetName")
 			}
 		})
 	}

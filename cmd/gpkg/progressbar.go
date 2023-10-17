@@ -8,7 +8,9 @@ import (
 )
 
 type ProgressBar struct {
-	Bar *pb.ProgressBar
+	bar *pb.ProgressBar
+
+	started bool
 }
 
 func newProgressBar(name string) *ProgressBar {
@@ -18,16 +20,27 @@ func newProgressBar(name string) *ProgressBar {
 	bar.Set("prefix", fmt.Sprintf("%s: ", name))
 
 	return &ProgressBar{
-		Bar: bar,
+		bar: bar,
 	}
 }
 
 func (b *ProgressBar) SetTotal(n int64) {
-	b.Bar.SetTotal(n)
+	b.bar.SetTotal(n)
 }
 
 func (b *ProgressBar) Write(data []byte) (int, error) {
 	n := len(data)
-	b.Bar.Add(n)
+	b.bar.Add(n)
 	return n, nil
+}
+
+func (b *ProgressBar) Start() {
+	b.started = true
+	b.bar.Start()
+}
+
+func (b *ProgressBar) Finish() {
+	if b.started {
+		b.bar.Finish()
+	}
 }
