@@ -6,6 +6,7 @@ require (
 	github.com/cheggaaa/pb/v3 v3.1.4
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-github/v53 v53.1.0
+	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79
 	github.com/h2non/filetype v1.1.3
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/otiai10/copy v1.12.0

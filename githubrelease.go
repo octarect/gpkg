@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v53/github"
+	"github.com/gregjones/httpcache"
 )
 
 type GitHubRelease struct {
@@ -33,7 +34,7 @@ func NewGitHubRelease(name, ref string) (*GitHubRelease, error) {
 		owner:  owner,
 		repo:   repo,
 		ref:    ref,
-		client: github.NewClient(nil),
+		client: github.NewClient(httpcache.NewMemoryCacheTransport().Client()),
 	}, nil
 }
 
@@ -105,4 +106,3 @@ func isCompatibleRelease(s string) bool {
 	hasArch := strings.Contains(s, runtime.GOARCH) || strings.Contains(s, "x86_64")
 	return hasOS && hasArch
 }
-
