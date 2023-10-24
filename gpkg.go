@@ -67,7 +67,7 @@ func ReconcilePackage(packagesDir string, states *StateData, spec PackageSpec, c
 func getSource(s PackageSpec) (Source, error) {
 	switch r := s.(type) {
 	case *GitHubReleaseSpec:
-		return NewGitHubRelease(r.Repo, r.Ref)
+		return NewGitHubRelease(r.Repo, r.Ref, nil)
 	default:
 		return nil, fmt.Errorf("Unknown spec detected. type=%T", r)
 	}

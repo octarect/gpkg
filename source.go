@@ -18,10 +18,12 @@ type Downloader interface {
 }
 
 type HTTPDownloader struct {
-	r     io.ReadCloser
+	io.ReadCloser
 	name  string
 	total int64
 }
+
+var _ Downloader = &HTTPDownloader{}
 
 func NewHTTPDownloader(name, url string) (*HTTPDownloader, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -37,18 +39,10 @@ func NewHTTPDownloader(name, url string) (*HTTPDownloader, error) {
 		return nil, fmt.Errorf("unexpected status code was returned. expected=200, got=%d, url=%s", resp.StatusCode, url)
 	}
 	return &HTTPDownloader{
-		r:     resp.Body,
-		name:  name,
-		total: resp.ContentLength,
+		ReadCloser: resp.Body,
+		name:       name,
+		total:      resp.ContentLength,
 	}, nil
-}
-
-func (dl *HTTPDownloader) Read(p []byte) (int, error) {
-	return dl.r.Read(p)
-}
-
-func (dl *HTTPDownloader) Close() error {
-	return dl.r.Close()
 }
 
 func (dl *HTTPDownloader) GetAssetName() string {

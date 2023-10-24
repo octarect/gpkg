@@ -4,6 +4,8 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"sort"
@@ -107,4 +109,16 @@ func (s *NopSpec) PackagePath() string {
 
 func (s *NopSpec) Unique() string {
 	return s.ID
+}
+
+type muxHandler func(http.ResponseWriter, *http.Request)
+
+func newTestServer(path string, code int, payload string) *httptest.Server {
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(code)
+		w.Write([]byte(payload))
+	})
+	return server
 }

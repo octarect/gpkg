@@ -3,7 +3,6 @@ package gpkg
 import (
 	"context"
 	"fmt"
-	"io"
 	"runtime"
 	"strings"
 
@@ -12,17 +11,20 @@ import (
 )
 
 type GitHubRelease struct {
-	owner string
-	repo  string
-	ref   string
-
-	client     *github.Client
-	downloader io.ReadCloser
-	length     int64
-	assetName  string
+	owner  string
+	repo   string
+	ref    string
+	client releaseGetter
 }
 
-func NewGitHubRelease(name, ref string) (*GitHubRelease, error) {
+type releaseGetter interface {
+	GetLatestRelease(context.Context, string, string) (*github.RepositoryRelease, *github.Response, error)
+	GetReleaseByTag(context.Context, string, string, string) (*github.RepositoryRelease, *github.Response, error)
+}
+
+var _ releaseGetter = &github.RepositoriesService{}
+
+func NewGitHubRelease(name, ref string, client releaseGetter) (*GitHubRelease, error) {
 	parts := strings.Split(name, "/")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("failed to get owner and repo")
@@ -30,30 +32,42 @@ func NewGitHubRelease(name, ref string) (*GitHubRelease, error) {
 	owner := parts[0]
 	repo := parts[1]
 
+	if client == nil {
+		client = github.NewClient(httpcache.NewMemoryCacheTransport().Client()).Repositories
+	}
+
 	return &GitHubRelease{
 		owner:  owner,
 		repo:   repo,
 		ref:    ref,
-		client: github.NewClient(httpcache.NewMemoryCacheTransport().Client()),
+		client: client,
 	}, nil
 }
 
 func (ghr *GitHubRelease) GetDownloader() (Downloader, error) {
-	r, err := ghr.fetchRelease(context.Background())
+	var err error
+	var rr *github.RepositoryRelease
+	if ghr.ref == "latest" || ghr.ref == "" {
+		rr, _, err = ghr.client.GetLatestRelease(context.Background(), ghr.owner, ghr.repo)
+	} else {
+		rr, _, err = ghr.client.GetReleaseByTag(context.Background(), ghr.owner, ghr.repo, ghr.ref)
+	}
 	if err != nil {
 		return nil, err
 	}
+
 	var name, url string
-	for k, v := range r.assets {
-		if isCompatibleRelease(k) {
-			name = k
-			url = v
+	for _, a := range rr.Assets {
+		if isCompatibleRelease(a.GetName()) {
+			name = a.GetName()
+			url = a.GetBrowserDownloadURL()
 			break
 		}
 	}
 	if name == "" {
 		return nil, fmt.Errorf("No compatible asset found. ref=%s", ghr.ref)
 	}
+
 	dl, err := NewHTTPDownloader(name, url)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create a downloader. err=%s", err)
@@ -63,41 +77,13 @@ func (ghr *GitHubRelease) GetDownloader() (Downloader, error) {
 
 func (ghr *GitHubRelease) ShouldUpdate(currentRef string) (bool, string, error) {
 	if ghr.ref == "latest" || ghr.ref == "" {
-		rr, _, err := ghr.client.Repositories.GetLatestRelease(context.Background(), ghr.owner, ghr.repo)
+		rr, _, err := ghr.client.GetLatestRelease(context.Background(), ghr.owner, ghr.repo)
 		if err != nil {
 			return false, "", err
 		}
 		return rr.GetTagName() != currentRef, rr.GetTagName(), nil
 	}
 	return ghr.ref != currentRef, ghr.ref, nil
-}
-
-type ReleaseData struct {
-	ref    string
-	assets map[string]string
-}
-
-func (ghr *GitHubRelease) fetchRelease(ctx context.Context) (*ReleaseData, error) {
-	var rr *github.RepositoryRelease
-	var err error
-
-	if ghr.ref == "latest" || ghr.ref == "" {
-		rr, _, err = ghr.client.Repositories.GetLatestRelease(ctx, ghr.owner, ghr.repo)
-	} else {
-		rr, _, err = ghr.client.Repositories.GetReleaseByTag(ctx, ghr.owner, ghr.repo, ghr.ref)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	rel := &ReleaseData{}
-	rel.ref = rr.GetTagName()
-	rel.assets = make(map[string]string, len(rr.Assets))
-	for _, a := range rr.Assets {
-		rel.assets[a.GetName()] = a.GetBrowserDownloadURL()
-	}
-
-	return rel, nil
 }
 
 func isCompatibleRelease(s string) bool {
