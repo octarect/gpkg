@@ -1,6 +1,8 @@
 # gpkg
 
-Super great package manager.
+[![CI](https://github.com/octarect/gpkg/actions/workflows/ci.yaml/badge.svg)](https://github.com/octarect/gpkg/actions/workflows/ci.yaml)
+
+A package manager written in Go. (Currently in development 🔨)
 
 ## Getting started
 
