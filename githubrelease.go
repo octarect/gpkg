@@ -3,6 +3,7 @@ package gpkg
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -58,7 +59,7 @@ func (ghr *GitHubRelease) GetDownloader() (Downloader, error) {
 
 	var name, url string
 	for _, a := range rr.Assets {
-		if isCompatibleRelease(a.GetName()) {
+		if isCompatibleAssetForMachine(runtime.GOOS, runtime.GOARCH, a.GetName()) {
 			name = a.GetName()
 			url = a.GetBrowserDownloadURL()
 			break
@@ -86,9 +87,28 @@ func (ghr *GitHubRelease) ShouldUpdate(currentRef string) (bool, string, error) 
 	return ghr.ref != currentRef, ghr.ref, nil
 }
 
-func isCompatibleRelease(s string) bool {
-	// TODO: At this point, only amd64 is supported.
-	hasOS := strings.Contains(s, runtime.GOOS)
-	hasArch := strings.Contains(s, runtime.GOARCH) || strings.Contains(s, "x86_64")
+var (
+	osDarwinRe  = regexp.MustCompile(`(?i)(darwin|macos)`)
+	archAmd64Re = regexp.MustCompile(`(?i)(amd64|x86_64)`)
+)
+
+func isCompatibleAssetForMachine(os, arch, assetName string) bool {
+	hasOS := false
+	switch os {
+	case "darwin":
+		hasOS = osDarwinRe.MatchString(assetName)
+	default:
+		hasOS = strings.Contains(assetName, os)
+	}
+
+	hasArch := false
+	switch arch {
+	case "amd64":
+		hasArch = archAmd64Re.MatchString(assetName)
+	case "arm":
+		hasArch = strings.Contains(assetName, "arm") && !strings.Contains(assetName, "arm64")
+	default:
+		hasArch = strings.Contains(assetName, arch)
+	}
 	return hasOS && hasArch
 }

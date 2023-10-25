@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v53/github"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -157,6 +158,130 @@ func TestGitHubRelease_GetDownloader(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				checkDiff(t, HTTPDownloader{}, tt.expected, got, "ReadCloser")
+			}
+		})
+	}
+}
+
+func TestIsCompatibleAssetForMachine(t *testing.T) {
+	osList := []struct {
+		value string
+		ids   []string
+	}{
+		{
+			"linux",
+			[]string{
+				"linux",
+			},
+		},
+		{
+			"darwin",
+			[]string{
+				"darwin",
+				"macos",
+			},
+		},
+	}
+	archList := []struct {
+		value string
+		ids   []string
+	}{
+		{
+			"386",
+			[]string{
+				"i386",
+			},
+		},
+		{
+			"amd64",
+			[]string{
+				"amd64",
+				"x86_64",
+			},
+		},
+		{
+			"arm",
+			[]string{
+				"arm",
+			},
+		},
+		{
+			"arm64",
+			[]string{
+				"arm64",
+			},
+		},
+	}
+
+	filesMatrix := make(map[string]map[string][]string)
+	fileFormat := func(osID, archID string) string {
+		return fmt.Sprintf("foo-v0.0.1-%s-%s", osID, archID)
+	}
+	for _, os := range osList {
+		if _, ok := filesMatrix[os.value]; !ok {
+			filesMatrix[os.value] = make(map[string][]string)
+		}
+		for _, arch := range archList {
+			filesMatrix[os.value][arch.value] = []string{}
+			for _, osID := range os.ids {
+				for _, archID := range arch.ids {
+					file := fileFormat(osID, archID)
+					filesMatrix[os.value][arch.value] = append(filesMatrix[os.value][arch.value], file)
+				}
+			}
+		}
+	}
+
+	type testCase struct {
+		name         string
+		goOS         string
+		goArch       string
+		expectedFile string
+		files        []string
+	}
+	tests := []testCase{}
+	for _, os := range osList {
+		for _, arch := range archList {
+			// Make a list of files other than the ID and the architecture to be tested.
+			// Each test assumes that the file with IDs to be tested exists in addition to them.
+			otherFiles := []string{}
+			for osValue, osMap := range filesMatrix {
+				for archValue, osArchFiles := range osMap {
+					if osValue != os.value || archValue != arch.value {
+						otherFiles = append(otherFiles, osArchFiles...)
+					}
+				}
+			}
+
+			for _, osID := range os.ids {
+				for _, archID := range arch.ids {
+					tc := testCase{
+						name:         fmt.Sprintf("%s(%s) && %s(%s)", os.value, osID, arch.value, archID),
+						goOS:         os.value,
+						goArch:       arch.value,
+						expectedFile: fileFormat(osID, archID),
+					}
+					tc.files = append(tc.files, otherFiles...)
+					tc.files = append(tc.files, fileFormat(osID, archID))
+					tests = append(tests, tc)
+				}
+			}
+		}
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var found string
+			for _, file := range tt.files {
+				if isCompatibleAssetForMachine(tt.goOS, tt.goArch, file) {
+					found = file
+					break
+				}
+			}
+			if found != "" {
+				assert.Equal(t, tt.expectedFile, found)
+			} else {
+				t.Errorf("No compatible asset found: %s", tt.expectedFile)
 			}
 		})
 	}
