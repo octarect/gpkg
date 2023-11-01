@@ -18,12 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestDir(t *testing.T) string {
-	tmpDir, err := os.MkdirTemp("", "gpkg-test-*")
-	require.NoError(t, err)
-	return tmpDir
-}
-
 func assertDirectoryContents(t *testing.T, dir string, expectedFiles []string) {
 	var files []string
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {

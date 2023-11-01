@@ -148,8 +148,6 @@ func TestCopyFile(t *testing.T) {
 	io.NopCloser(br)
 
 	// Valid destination
-	tmpDir := setupTestDir(t)
-	defer os.RemoveAll(tmpDir)
-	err = copyFile(br, filepath.Join(tmpDir, "bar"), 0644)
+	err = copyFile(br, filepath.Join(t.TempDir(), "bar"), 0644)
 	require.NoError(t, err)
 }

@@ -21,32 +21,31 @@ func TestCreateConfigFile(t *testing.T) {
 		{
 			"already exists",
 			func(t *testing.T) string {
-				testDir := setupTestDir(t)
-				if _, err := os.Create(filepath.Join(testDir, expectedFileName)); err != nil {
+				d := t.TempDir()
+				if _, err := os.Create(filepath.Join(d, expectedFileName)); err != nil {
 					t.Fatal(err)
 				}
-				return testDir
+				return d
 			},
 		},
 		{
 			"a config file does not exist yet",
 			func(t *testing.T) string {
-				return setupTestDir(t)
+				return t.TempDir()
 			},
 		},
 		{
 			"create a directry if not exists",
 			func(t *testing.T) string {
-				testDir := setupTestDir(t)
-				return filepath.Join(testDir, "autocreated")
+				d := t.TempDir()
+				return filepath.Join(d, "autocreated")
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			testDir := tt.setup(t)
-			defer os.RemoveAll(testDir)
-			cfgPath := filepath.Join(testDir, expectedFileName)
+			d := tt.setup(t)
+			cfgPath := filepath.Join(d, expectedFileName)
 
 			err := CreateConfigFile(cfgPath)
 			require.NoError(t, err)

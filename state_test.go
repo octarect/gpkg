@@ -83,9 +83,7 @@ func TestLoadStateDataFromFile(t *testing.T) {
 		assert.EqualValues(t, &StateData{}, got)
 	})
 	t.Run("valid json", func(t *testing.T) {
-		testDir := setupTestDir(t)
-		defer os.RemoveAll(testDir)
-		statePath := filepath.Join(testDir, "states.json")
+		statePath := filepath.Join(t.TempDir(), "states.json")
 		json := `
 		{
 			"states": [
@@ -107,9 +105,7 @@ func TestLoadStateDataFromFile(t *testing.T) {
 		require.NoError(t, err)
 	})
 	t.Run("invalid json", func(t *testing.T) {
-		testDir := setupTestDir(t)
-		defer os.RemoveAll(testDir)
-		statePath := filepath.Join(testDir, "states.json")
+		statePath := filepath.Join(t.TempDir(), "states.json")
 		json := `xxxx`
 		err := os.WriteFile(statePath, []byte(json), 0666)
 		require.NoError(t, err)
@@ -141,18 +137,12 @@ func TestStateData_SaveToFile(t *testing.T) {
 		},
 	}
 	t.Run("create a new state file", func(t *testing.T) {
-		testDir := setupTestDir(t)
-		defer os.RemoveAll(testDir)
-
-		statePath := filepath.Join(testDir, "states.json")
+		statePath := filepath.Join(t.TempDir(), "states.json")
 		err := sd.SaveToFile(statePath)
 		require.NoError(t, err)
 	})
 	t.Run("already exists", func(t *testing.T) {
-		testDir := setupTestDir(t)
-		defer os.RemoveAll(testDir)
-
-		statePath := filepath.Join(testDir, "states.json")
+		statePath := filepath.Join(t.TempDir(), "states.json")
 		err := os.WriteFile(statePath, []byte(""), 0666)
 		require.NoError(t, err)
 		err = sd.SaveToFile(statePath)
